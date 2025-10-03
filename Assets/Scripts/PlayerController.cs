@@ -5,7 +5,7 @@ public class PlayerController : MonoBehaviour
     const int MinLane = -2;
     const int MaxLane = 2;
     const float LaneWidth = 6.0f;
-    const float StunDuretion = 0.5f;
+    const float StunDuration = 0.5f;
     float recoverTime = 0.0f;
 
     public int life = 10;
@@ -17,10 +17,10 @@ public class PlayerController : MonoBehaviour
 
     public float gravity = 9.81f;   // 重力
 
-    public float speedZ = 10;   // 前進方向のスピードの上限値
+    public float speedZ = 10;       // 前進方向のスピードの上限値
     public float accelerationZ = 8; // 加速度
 
-    public float speedX = 10;   // 横方向に移動するときのスピード
+    public float speedX = 10;       // 横方向に移動するときのスピード
 
     public float speedJump = 10;    // ジャンプスピード
 
@@ -77,6 +77,7 @@ public class PlayerController : MonoBehaviour
         moveDirection.y -= gravity * Time.deltaTime;
 
         // 移動実行
+        // ※ローカル空間の方向ベクトルをワールド空間の方向ベクトルに変換する
         Vector3 globalDirection = transform.TransformDirection(moveDirection);
         controller.Move(globalDirection * Time.deltaTime);
 
@@ -89,8 +90,12 @@ public class PlayerController : MonoBehaviour
     public void MoveToLeft()
     {
         // もしもスタン中であれば何も説終了（一行で）
+        if (IsStun()) return;
+
         if (controller.isGrounded && targetLane > MinLane)
+        {
             targetLane--;
+        }
     }
 
     // →のレーンに移動を開始
@@ -100,7 +105,9 @@ public class PlayerController : MonoBehaviour
         if (IsStun()) return;
 
         if (controller.isGrounded && targetLane < MaxLane)
+        {
             targetLane++;
+        }
     }
 
     // ジャンプ
@@ -113,10 +120,47 @@ public class PlayerController : MonoBehaviour
         if (controller.isGrounded) moveDirection.y = speedJump;
     }
 
-    // 気絶状態かどうか
+    // 体力をリターン
+    public int Life()
+    {
+        return life;
+    }
+
+    // スタン（気絶状態）かどうか
     bool IsStun()
     {
-        return recoverTime > 0.0f || life <= 0;
+        // recoverTimeが稼働中かLifeが0になった場合はsturnフラグがON
+        bool stun = recoverTime > 0.0f || life <= 0;
+
+        // ※StunフラグがOFFの場合はボディを確実に表示
+        if (!stun) body.SetActive(true);
+
+        // Stunフラグをリターン
+        return stun;
+    }
+
+    //接触判定
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        if (IsStun()) return;
+
+        //ぶつかった相手がEnemyなら
+        if (hit.gameObject.CompareTag("Enemy"))
+        {
+            //体力をマイナス
+            life--;
+
+            if (life <= 0)
+            {
+                GameManager.gameState = GameState.gameover;
+                Instantiate(boms, transform.position, Quaternion.identity); //爆発エフェクトの発生
+                Destroy(gameObject, 0.5f); //少し時間差で自分を消滅
+            }
+            //recoverTimeの時間を設定
+            recoverTime = StunDuration;
+            //接触したEnemyを削除
+            Destroy(hit.gameObject);
+        }
     }
 
     // 点滅処理
@@ -128,13 +172,15 @@ public class PlayerController : MonoBehaviour
 
         if (val > 0)
         {
-            // 描画機能を有効
-            gameObject.GetComponent<SpriteRenderer>().enabled = true;
+            body.SetActive(true);
+            //// 描画機能を有効
+            //gameObject.GetComponent<SpriteRenderer>().enabled = true;
         }
         else
         {
-            // 描画機能を無効
-            gameObject.GetComponent<SpriteRenderer>().enabled = false;
+            body.SetActive(false);
+            //// 描画機能を無効
+            //gameObject.GetComponent<SpriteRenderer>().enabled = false;
         }
     }
 
