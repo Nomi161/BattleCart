@@ -16,9 +16,14 @@ public class Shooter : MonoBehaviour
 
     Camera cam;                     // カメラ情報の取得
 
+    PlayerController playerCnt; // 他オブジェクトについているPlayerControllerスクリプト
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+
+        playerCnt = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerController>();
+
         // 時間差でシュート可能にする
         Invoke("ShootEnabled", 0.5f);
 
@@ -54,6 +59,11 @@ public class Shooter : MonoBehaviour
         // プレイヤーが消滅していなければ
         if (player == null || shotPower <= 0) return;
 
+        playerCnt.SEPlay(SEType.Shot);  // ショット音を鳴らす
+
+        PlayerController playerController = player.GetComponent<PlayerController>();
+        Debug.Log($"PlayerControllre.SpeedZ={playerController.MoveDirection.z}");
+
         // プレイヤーの位置にBulletを生成
         GameObject obj = Instantiate(bulletPrefab, gate.transform.position, Quaternion.identity);
 
@@ -65,7 +75,8 @@ public class Shooter : MonoBehaviour
         Vector3 v = new Vector3(
             cam.transform.forward.x * shootSpeed,
             cam.transform.forward.y * upSpeed,
-            cam.transform.forward.z * shootSpeed
+//            cam.transform.forward.z * shootSpeed
+            cam.transform.forward.z + (playerController.MoveDirection.z * shootSpeed)
             );
 
         // 生成した弾のAddForceの力でシュート

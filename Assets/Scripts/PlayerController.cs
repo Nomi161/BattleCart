@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
@@ -8,11 +8,11 @@ public class PlayerController : MonoBehaviour
     const float StunDuration = 0.5f;
     float recoverTime = 0.0f;
 
-    public int life = 10;
+    public int life = 3;
 
     CharacterController controller;
 
-    Vector3 moveDirection = Vector3.zero;
+    Vector3 moveDirection = Vector3.zero;   // 移動位置情報
     int targetLane;
 
     public float gravity = 9.81f;   // 重力
@@ -28,10 +28,29 @@ public class PlayerController : MonoBehaviour
 
     public GameObject boms;
 
+    // 音にまつわるコンポーネントとSE音情報
+    AudioSource audio;
+    public AudioClip se_shot;
+    public AudioClip se_damage;
+    public AudioClip se_jump;
+
+    /// <summary>
+    /// 移動位置情報の読みだし
+    /// </summary>
+    public Vector3 MoveDirection
+    {
+        get
+        {
+            Vector3 val = moveDirection;
+            return val; 
+        }
+    }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        audio = GetComponent<AudioSource>();
+
         // 変数 controller に CharacterController コンポーネントを取得
         controller = GetComponent<CharacterController>();
 
@@ -84,6 +103,9 @@ public class PlayerController : MonoBehaviour
         // 移動後接地していたらY方向ん速度はリセットする
         if (controller.isGrounded) moveDirection.y = 0;
 
+        //1秒1ずつトップスピードの上限値が増えていく
+        speedZ += Time.deltaTime;       // 前進方向のスピードの上限値
+
     }
 
     // 左のレーンに移動を開始
@@ -117,7 +139,11 @@ public class PlayerController : MonoBehaviour
         if (IsStun()) return;
 
         // 地面に接触していればY方向の力を設定
-        if (controller.isGrounded) moveDirection.y = speedJump;
+        if (controller.isGrounded)
+        {
+            SEPlay(SEType.Jump);    // ジャンプ音を鳴らす
+            moveDirection.y = speedJump;
+        }
     }
 
     // 体力をリターン
@@ -150,16 +176,28 @@ public class PlayerController : MonoBehaviour
             //体力をマイナス
             life--;
 
+            SEPlay(SEType.Damage);    // ダメージ音を鳴らす
+
+            // スピードをリセット
+            speedZ = 10;
+
             if (life <= 0)
             {
+                SoundManager.instance.StopBgm();    // 曲を止める
+
+                // ゲームオーバーになった時にその時のポジションZの座標をを「Score」というキーワードでパソコンに保存
+                PlayerPrefs.SetFloat("Score",transform.position.z);
+
                 GameManager.gameState = GameState.gameover;
                 Instantiate(boms, transform.position, Quaternion.identity); //爆発エフェクトの発生
                 Destroy(gameObject, 0.5f); //少し時間差で自分を消滅
+
             }
             //recoverTimeの時間を設定
             recoverTime = StunDuration;
             //接触したEnemyを削除
             Destroy(hit.gameObject);
+
         }
     }
 
@@ -184,5 +222,21 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    //SE再生
+    public void SEPlay(SEType type)
+    {
+        switch (type)
+        {
+            case SEType.Shot:
+                audio.PlayOneShot(se_shot);
+                break;
+            case SEType.Damage:
+                audio.PlayOneShot(se_damage);
+                break;
+            case SEType.Jump:
+                audio.PlayOneShot(se_jump);
+                break;
+        }
+    }
 }
 

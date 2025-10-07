@@ -10,6 +10,7 @@ public class StageGenerator : MonoBehaviour
     int currentChipIndex;           // 現在どのチップまで作ったか
 
     Transform player;               // プレイヤーのTransform情報の取得
+                                    // （Transform:オブジェクトの位置、回転、スケールを扱うクラス）
 
     public GameObject[] stageChips; // 生成すべきオブジェクトを配列に格納
 
@@ -22,12 +23,14 @@ public class StageGenerator : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        // Transformを獲得
+        // プレイヤーのTransformを獲得
         player = GameObject.FindGameObjectWithTag("Player").transform;
 
         currentChipIndex = startChipIndex - 1;
+
+        // 指定のIndexまでのステージチップを生成して、管理下に置く
         UpdateStage(preInstantiate);
-        
+
     }
 
 
@@ -42,6 +45,7 @@ public class StageGenerator : MonoBehaviour
             // 次のステージチップに入ったらステージチップの更新処理をおこなう
             if (charaPositionIndex + preInstantiate > currentChipIndex)
             {
+                // 指定のIndexまでのステージチップを生成して、管理下に置く
                 UpdateStage(charaPositionIndex + preInstantiate);
             }
         }    
@@ -70,7 +74,12 @@ public class StageGenerator : MonoBehaviour
         currentChipIndex = toChipIndex;
     }
 
-    // 指定のインデックス位置にStageオブジェクトをランダムに生成
+
+    /// <summary>
+    /// 指定のインデックス位置にStageオブジェクトをランダムに生成 
+    /// </summary>
+    /// <param name="chipIndex"></param>
+    /// <returns></returns>
     GameObject GenerateStage(int chipIndex)
     {
         int nextStageChip = Random.Range(0, stageChips.Length);
